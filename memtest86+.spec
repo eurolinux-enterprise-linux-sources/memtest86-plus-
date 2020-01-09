@@ -1,12 +1,14 @@
 %bcond_with update_grub
 
 # Prevent stripping
-%define __spec_install_post /usr/lib/rpm/brp-compress
+%global __spec_install_post /usr/lib/rpm/brp-compress
 # Turn off debuginfo package
-%define debug_package %{nil}
+%global debug_package %{nil}
+
+%global readme_suffix %{?rhel:redhat}%{!?rhel:fedora}
 
 Name:     memtest86+
-Version:  4.10
+Version:  5.01
 Release:  2%{?dist}
 License:  GPLv2
 Summary:  Stand-alone memory tester for x86 and x86-64 computers
@@ -14,18 +16,30 @@ Group:    System Environment/Base
 Source0:  http://www.memtest.org/download/%{version}/%{name}-%{version}.tar.gz
 Source1:  memtest-setup
 Source2:  new-memtest-pkg
+Source3:  memtest-setup.8
+Source4:  README
+# reported upstream
+Patch0:   memtest86+-5.01-no-scp.patch
+# patches to get memtest86+ working with gcc-4.7.2 or later + PCI scan fix
+# these patches were taken from Mageia
+# upstream report containing link to the patches:
+# http://forum.canardpc.com/threads/83443-Memtest86-V5.01-crashes-with-gcc-4.7.2-or-later
+Patch1:   memtest86+-5.01-no-optimization.patch
+Patch2:   memtest86+-5.01-compile-fix.patch
+Patch3:   memtest86+-5.01-crash-fix.patch
+# reported upstream
+Patch4:   memtest86+-5.01-real-mode-reloc.patch
 URL:      http://www.memtest.org
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 # require glibc-devel.i386 via this file:
 BuildRequires: %{_includedir}/gnu/stubs-32.h
-BuildRequires: compat-gcc-34
 Requires: /sbin/grubby sed coreutils
 ExclusiveArch: %{ix86} x86_64
 
 %description
-Memtest86+ is a thorough stand-alone memory test for x86 and x86-64 
-architecture computers. BIOS based memory tests are only a quick 
-check and often miss many of the failures that are detected by 
+Memtest86+ is a thorough stand-alone memory test for x86 and x86-64
+architecture computers. BIOS based memory tests are only a quick
+check and often miss many of the failures that are detected by
 Memtest86+.
 
 The ELF version should be used for booting from grub,
@@ -38,8 +52,15 @@ The script '%{_sbindir}/memtest-setup' can be run (as root)
 to add the %{name} entry to your GRUB boot menu.
 
 %prep
-%setup -q 
-sed -i -e's,0x5000,0x100000,' memtest.lds
+%setup -q
+cp -p %{SOURCE4} README.%{readme_suffix}
+%patch0 -p1 -b .no-scp
+%patch1 -p1 -b .no-optimization
+%patch2 -p1 -b .compile-fix
+%patch3 -p1 -b .crash-fix
+%patch4 -p1 -b .real-mode-reloc
+
+sed -i -e's,0x10000,0x100000,' memtest.lds
 %ifarch x86_64
 sed -i -e's,$(LD) -s -T memtest.lds,$(LD) -s -T memtest.lds -z max-page-size=0x1000,' Makefile
 %endif
@@ -66,6 +87,9 @@ install -m755 %{SOURCE2} %{buildroot}/sbin/new-memtest-pkg
 install -m755 %{SOURCE1} %{buildroot}%{_sbindir}/memtest-setup
 sed -i 's/\r//' $RPM_BUILD_DIR/%{name}-%{version}/README
 
+# install manual page
+install -Dpm 0644 %{SOURCE3} %{buildroot}%{_mandir}/man8/memtest-setup.8
+
 %if %{with update_grub}
 %post -p /usr/sbin/memtest-setup
 %endif
@@ -79,14 +103,28 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,-)
-%doc README
+%doc README README.%{readme_suffix}
 /boot/%{name}-%{version}
 /boot/elf-%{name}-%{version}
 /sbin/new-memtest-pkg
 %{_sbindir}/memtest-setup
-
+%{_mandir}/man8/*.8.gz
 
 %changelog
+* Fri Feb 12 2016 Jaroslav Škarvada <jskarvad@redhat.com> - 5.01-2
+- Fixed memtest86+ binary (non-ELF) to run from floppy disk
+  Resolves: rhbz#1302806
+- Fixed memtest-setup to support --help argument
+  Resolves: rhbz#1302000
+- Added distribution specific README file
+  Resolves: rhbz#1302005
+
+* Fri Jan  8 2016 Jaroslav Škarvada <jskarvad@redhat.com> - 5.01-1
+- New version
+  Resolves: rhbz#1009083
+- Fixed bogus dates in the changelog (best effort)
+- Used global instead of define in macros definition
+
 * Tue Jan 25 2011 Jaroslav Škarvada <jskarvad@redhat.com> - 4.10-2
 - Reduce max-page-size on x86_64 to fit into loader limits
 - Resolves: rhbz#607006
@@ -126,11 +164,11 @@ rm -rf %{buildroot}
   will have to add and/or remove memtest86+ entries.
 - No messages printed.
 
-* Mon Mar 31 2009 Paulo Roma <roma@lcg.ufrj.br> - 2.11-5
+* Tue Mar 31 2009 Paulo Roma <roma@lcg.ufrj.br> - 2.11-5
 - Changed postun for preun.
 - Calling memtest-setup in case of updating grub.conf
 
-* Mon Mar 11 2009 Paulo Roma <roma@lcg.ufrj.br> - 2.11-4
+* Wed Mar 11 2009 Paulo Roma <roma@lcg.ufrj.br> - 2.11-4
 - Updated to 2.11
 - Patched for booting from grub.
 - Using memtest (ELF) instead of memtest.bin
@@ -141,7 +179,7 @@ rm -rf %{buildroot}
 * Wed Feb 25 2009 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 2.11-3
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_11_Mass_Rebuild
 
-* Mon Nov 12 2008 Warren Togami <wtogami@redhat.com> - 2.10-1
+* Wed Nov 12 2008 Warren Togami <wtogami@redhat.com> - 2.10-1
 - 2.10
 
 * Thu Apr 03 2008 Warren Togami <wtogami@redhat.com> - 2.01-3
@@ -227,7 +265,7 @@ rm -rf %{buildroot}
 - allow building on all x86 arches
 - pass appropriate compiler options to build on x86_64 as well (#136939)
 
-* Wed Sep 02 2004 Warren Togami <wtogami@redhat.com> 1.26-1
+* Thu Sep 02 2004 Warren Togami <wtogami@redhat.com> 1.26-1
 - update to 1.26
 
 * Sat Aug 28 2004 Warren Togami <wtogami@redhat.com> 1.25-1
@@ -257,7 +295,7 @@ rm -rf %{buildroot}
 - fix perms (#107610)
 - doesn't really require dev86 to build
 
-* Thu Jul 21 2003 Michael Fulbright <msf@redhat.com>
+* Mon Jul 21 2003 Michael Fulbright <msf@redhat.com>
 - initial integration into distribution. Removed the scripts to install a
   entry in the boot loader for memtest for the moment, and relocated to under
   /usr/lib.
