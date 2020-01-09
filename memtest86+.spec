@@ -6,7 +6,7 @@
 %define debug_package %{nil}
 
 Name:     memtest86+
-Version:  4.00
+Version:  4.10
 Release:  2%{?dist}
 License:  GPLv2
 Summary:  Stand-alone memory tester for x86 and x86-64 computers
@@ -39,7 +39,10 @@ to add the %{name} entry to your GRUB boot menu.
 
 %prep
 %setup -q 
-sed -i -e's,0x10000,0x100000,' memtest.lds
+sed -i -e's,0x5000,0x100000,' memtest.lds
+%ifarch x86_64
+sed -i -e's,$(LD) -s -T memtest.lds,$(LD) -s -T memtest.lds -z max-page-size=0x1000,' Makefile
+%endif
 
 %build
 # Regular build flags not wanted for this binary
@@ -84,6 +87,14 @@ rm -rf %{buildroot}
 
 
 %changelog
+* Tue Jan 25 2011 Jaroslav Škarvada <jskarvad@redhat.com> - 4.10-2
+- Reduce max-page-size on x86_64 to fit into loader limits
+- Resolves: rhbz#607006
+
+* Wed Nov 24 2010 Anton Arapov <anton@redhat.com> - 4.10-1
+- Update to new upstream release, v4.10
+- Resolves: rhbz#640731
+
 * Tue Oct 13 2009 Jarod Wilson <jarod@redhat.com> - 4.00-2
 - Fix memtest-setup on systems without a separate /boot
   filesystem (#528651)
