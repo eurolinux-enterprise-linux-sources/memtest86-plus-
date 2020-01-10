@@ -34,6 +34,20 @@ else
   OS="${GRUB_DISTRIBUTOR} Memtest"
 fi
 
+CONF_FILE="/etc/memtest86+.conf"
+CONF_ELF_VAR="INSTALL_ELF"
+
+MEMTEST86_ELF=`[ -r "$CONF_FILE" ] && sed -n "/^\s*${CONF_ELF_VAR}\s*=/ {s/^\s*${CONF_ELF_VAR}\s*=\s*\(.*\)$/\1/; T end; s/\s*\(\S\)*\s*/\1/; p; :end}" "$CONF_FILE" 2>/dev/null`
+if [ "x${MEMTEST86_ELF}" = "x" ] || [ "x${MEMTEST86_ELF}" = "x1" ] || [ "x${MEMTEST86_ELF}" = "xtrue" ]; then
+  MEMTEST86_ELF=1
+  BANNER_SUFFIX=
+  IMAGE="elf-memtest"
+else
+  MEMTEST86_ELF=0
+  IMAGE="memtest"
+  BANNER_SUFFIX=" (non-ELF)"
+fi
+
 # loop-AES arranges things so that /dev/loop/X can be our root device, but
 # the initrds that Linux uses don't like that.
 case ${GRUB_DEVICE} in
@@ -65,7 +79,7 @@ memtest_entry ()
   recovery="$3"
   args="$4"
   title="$(gettext_quoted "%s %s")"
-  printf "menuentry '${title}' {\n" "${os}" "${version}"
+  printf "menuentry '${title}${BANNER_SUFFIX}' {\n" "${os}" "${version}"
 
 
   if [ x$dirname = x/ ]; then
@@ -79,22 +93,30 @@ memtest_entry ()
     fi
     printf '%s\n' "${prepare_boot_cache}"
   fi
-  message="$(gettext_printf "Loading %s %s ..." ${os} ${version})"
-  cat << EOF
+  message="$(gettext_printf "Loading %s %s ..." "${os}" "${version}")"
+  if [ "x${MEMTEST86_ELF}" = "x1" ]; then
+    cat << EOF
 	insmod bsd
 	echo	'$message'
 	knetbsd	${rel_dirname}/${basename}
 }
 EOF
+  else
+    cat << EOF
+	echo	'$message'
+	linux16	${rel_dirname}/${basename}
+}
+EOF
+  fi
 }
 
 case x`uname -m` in
     xi?86 | xx86_64)
-	list=`for i in /boot/elf-memtest* ; do
+	list=`for i in /boot/${IMAGE}* ; do
                   if grub_file_is_not_garbage "$i" ; then echo -n "$i " ; fi
               done` ;;
     *) 
-	list=`for i in /boot/elf-memtest* ; do
+	list=`for i in /boot/${IMAGE}* ; do
                   if grub_file_is_not_garbage "$i" ; then echo -n "$i " ; fi
 	     done` ;;
 esac

@@ -8,8 +8,8 @@
 %global readme_suffix %{?rhel:redhat}%{!?rhel:fedora}
 
 Name:     memtest86+
-Version:  4.20
-Release:  14%{?dist}
+Version:  5.01
+Release:  2%{?dist}
 License:  GPLv2
 Summary:  Stand-alone memory tester for x86 and x86-64 computers
 Group:    System Environment/Base
@@ -18,9 +18,18 @@ Source1:  memtest-setup
 Source2:  new-memtest-pkg
 Source3:  20_memtest86+
 Source4:  memtest-setup.8
-Source5:  README
-Patch0:   memtest86+-4.20-gcc47-test7-workaround.patch
-
+Source5:  memtest86+.conf
+Source6:  README
+# reported upstream
+Patch0:   memtest86+-5.01-no-scp.patch
+# patches to get memtest86+ working with gcc-4.7.2 or later + PCI scan fix
+# these patches were taken from Mageia
+# upstream report containing link to the patches:
+# http://forum.canardpc.com/threads/83443-Memtest86-V5.01-crashes-with-gcc-4.7.2-or-later
+Patch1:   memtest86+-5.01-no-optimization.patch
+Patch2:   memtest86+-5.01-compile-fix.patch
+Patch3:   memtest86+-5.01-crash-fix.patch
+Patch4:   memtest86+-5.01-fgnu89-inline.patch
 URL:      http://www.memtest.org
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 # require glibc-devel.i386 via this file:
@@ -29,9 +38,9 @@ Requires: grubby sed coreutils util-linux
 ExclusiveArch: %{ix86} x86_64
 
 %description
-Memtest86+ is a thorough stand-alone memory test for x86 and x86-64 
-architecture computers. BIOS based memory tests are only a quick 
-check and often miss many of the failures that are detected by 
+Memtest86+ is a thorough stand-alone memory test for x86 and x86-64
+architecture computers. BIOS based memory tests are only a quick
+check and often miss many of the failures that are detected by
 Memtest86+.
 
 The ELF version should be used for booting from grub,
@@ -45,9 +54,14 @@ to add the %{name} entry to your GRUB boot menu.
 
 %prep
 %setup -q
-cp -p %{SOURCE5} README.%{readme_suffix}
-%patch0 -p1 -b .gcc47-test7-workaround
-sed -i -e's,0x5000,0x100000,' memtest.lds
+cp -p %{SOURCE6} README.%{readme_suffix}
+%patch0 -p1 -b .no-scp
+%patch1 -p1 -b .no-optimization
+%patch2 -p1 -b .compile-fix
+%patch3 -p1 -b .crash-fix
+%patch4 -p1 -b .fgnu89-inline
+
+#sed -i -e's,0x10000,0x100000,' memtest.lds
 %ifarch x86_64
 sed -i -e's,$(LD) -s -T memtest.lds,$(LD) -s -T memtest.lds -z max-page-size=0x1000,' Makefile
 %endif
@@ -59,9 +73,7 @@ sed -i -e's,$(LD) -s -T memtest.lds,$(LD) -s -T memtest.lds -z max-page-size=0x1
 make
 
 %install
-rm -rf %{buildroot}
-mkdir -p %{buildroot}/boot
-mkdir -p %{buildroot}%{_sbindir}
+mkdir -p %{buildroot}/{boot,%{_sbindir}}
 
 # the ELF (memtest) version.
 install -m644 memtest %{buildroot}/boot/elf-%{name}-%{version}
@@ -82,8 +94,12 @@ install -m644 %{SOURCE3} %{buildroot}%{_datadir}/%{name}
 # install manual page
 install -Dpm 0644 %{SOURCE4} %{buildroot}%{_mandir}/man8/memtest-setup.8
 
+# install configuration file
+install -Dpm 0644 %{SOURCE5} %{buildroot}%{_sysconfdir}/memtest86+.conf
+
+%post
 %if %{with update_grub}
-%post -p /usr/sbin/memtest-setup
+/usr/sbin/memtest-setup
 %endif
 
 %preun
@@ -93,12 +109,9 @@ then
   %{_sbindir}/new-memtest-pkg --remove %{version}
 fi
 
-%clean
-rm -rf %{buildroot}
-
 %files
-%defattr(-,root,root,-)
 %doc README README.%{readme_suffix}
+%config(noreplace) %{_sysconfdir}/memtest86+.conf
 /boot/%{name}-%{version}
 /boot/elf-%{name}-%{version}
 %{_sbindir}/new-memtest-pkg
@@ -109,6 +122,10 @@ rm -rf %{buildroot}
 %{_mandir}/man8/*.8.gz
 
 %changelog
+* Tue Apr  5 2016 Jaroslav Škarvada <jskarvad@redhat.com> - 5.01-2
+- New version
+  Resolves: rhbz#1280352
+
 * Fri Sep  5 2014 Jaroslav Škarvada <jskarvad@redhat.com> - 4.20-14
 - Fixed typo in memtest-setup help, added its options to man / help
   Related: rhbz#1084030

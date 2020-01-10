@@ -75,6 +75,7 @@ usage() {
     echo "Usage: `basename $0` [-v] [--mkinitrd] [--rminitrd]" >&2 
     echo "       [--initrdfile=<initrd-image>] [--depmod] [--rmmoddep]" >&2
     echo "       [--kernel-args=<args>] [--banner=<banner>]" >&2
+    echo "       [--kernel-name=<kernel-name>]" >&2
     echo "       <--install | --remove> <kernel-version>" >&2
     echo "       (ex: `basename $0` --mkinitrd --depmod --install 2.4.7-2)" >&2
     exit 1
@@ -127,7 +128,13 @@ install() {
 	else
 	    title="Red Hat Linux ($version)"
 	fi
-	/usr/sbin/grubby --add-kernel=$bootPrefix/$kernelName-$version $INITRD    \
+	# check whether grubby supports --grub argument
+	if /usr/sbin/grubby --help | grep -qe '--grub\W'; then
+	    GRUB_ARG="--grub "
+	else
+	    GRUB_ARG=
+	fi
+	/usr/sbin/grubby ${GRUB_ARG}--add-kernel=$bootPrefix/$kernelName-$version $INITRD    \
 		     --copy-default --title "$title"		    \
 		     --args="root=$rootdevice $kernargs"			    \
 		     --remove-kernel="TITLE=$title"
@@ -233,7 +240,7 @@ while [ $# -gt 0 ]; do
 	    else
 		initrdfile=$2
 		shift
-	    fi		    
+	    fi
 	    ;;
 
 	--kernel-args*)
@@ -242,7 +249,7 @@ while [ $# -gt 0 ]; do
 	    else
 		kernargs=$2
 		shift
-	    fi		    
+	    fi
 	    ;;
 
 	--banner*)
@@ -251,7 +258,16 @@ while [ $# -gt 0 ]; do
 	    else
 		banner=$2
 		shift
-	    fi		    
+	    fi
+	    ;;
+
+	--kernel-name*)
+	    if echo $1 | grep '=' >/dev/null ; then
+	    	kernelName=`echo $1 | sed 's/^--kernel-name=//'`
+	    else
+		kernelName=$2
+		shift
+	    fi
 	    ;;
 
 	--depmod)
