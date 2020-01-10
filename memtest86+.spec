@@ -7,7 +7,7 @@
 
 Name:     memtest86+
 Version:  4.20
-Release:  10%{?dist}
+Release:  12%{?dist}
 License:  GPLv2
 Summary:  Stand-alone memory tester for x86 and x86-64 computers
 Group:    System Environment/Base
@@ -100,6 +100,13 @@ rm -rf %{buildroot}
 %{_sbindir}/memtest-setup
 
 %changelog
+* Thu Jan  2 2014 Jaroslav Škarvada <jskarvad@redhat.com> - 4.20-12
+- Fixed bogus dates in changelog (best effort)
+  Resolves: rhbz#1043615
+
+* Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 4.20-11
+- Mass rebuild 2013-12-27
+
 * Mon Sep 16 2013 Jaroslav Škarvada <jskarvad@redhat.com> - 4.20-10
 - Fixed grubby requirement
   Resolves: rhbz#1008356
@@ -189,11 +196,11 @@ rm -rf %{buildroot}
   will have to add and/or remove memtest86+ entries.
 - No messages printed.
 
-* Mon Mar 31 2009 Paulo Roma <roma@lcg.ufrj.br> - 2.11-5
+* Tue Mar 31 2009 Paulo Roma <roma@lcg.ufrj.br> - 2.11-5
 - Changed postun for preun.
 - Calling memtest-setup in case of updating grub.conf
 
-* Mon Mar 11 2009 Paulo Roma <roma@lcg.ufrj.br> - 2.11-4
+* Wed Mar 11 2009 Paulo Roma <roma@lcg.ufrj.br> - 2.11-4
 - Updated to 2.11
 - Patched for booting from grub.
 - Using memtest (ELF) instead of memtest.bin
@@ -204,7 +211,7 @@ rm -rf %{buildroot}
 * Wed Feb 25 2009 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 2.11-3
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_11_Mass_Rebuild
 
-* Mon Nov 12 2008 Warren Togami <wtogami@redhat.com> - 2.10-1
+* Wed Nov 12 2008 Warren Togami <wtogami@redhat.com> - 2.10-1
 - 2.10
 
 * Thu Apr 03 2008 Warren Togami <wtogami@redhat.com> - 2.01-3
@@ -290,7 +297,7 @@ rm -rf %{buildroot}
 - allow building on all x86 arches
 - pass appropriate compiler options to build on x86_64 as well (#136939)
 
-* Wed Sep 02 2004 Warren Togami <wtogami@redhat.com> 1.26-1
+* Thu Sep 02 2004 Warren Togami <wtogami@redhat.com> 1.26-1
 - update to 1.26
 
 * Sat Aug 28 2004 Warren Togami <wtogami@redhat.com> 1.25-1
@@ -320,7 +327,7 @@ rm -rf %{buildroot}
 - fix perms (#107610)
 - doesn't really require dev86 to build
 
-* Thu Jul 21 2003 Michael Fulbright <msf@redhat.com>
+* Mon Jul 21 2003 Michael Fulbright <msf@redhat.com>
 - initial integration into distribution. Removed the scripts to install a
   entry in the boot loader for memtest for the moment, and relocated to under
   /usr/lib.
