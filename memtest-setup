@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# package name
+PNAME="memtest86+"
+
+# executable
+ENAME="elf-memtest86+"
+
+# grub2 template
+G2TEMPL="20_memtest86+"
+
+if [ -d /sys/firmware/efi ]; then
+    echo "memtest86+ does not support EFI platforms."
+    exit 254
+fi
+
+if [ -f /boot/grub2/grub.cfg ]; then
+    echo "grub2 detected, installing template..."
+    if [ ! -d /etc/grub.d ]; then
+        echo "ERROR: unable to find /etc/grub.d"
+        exit 253
+    fi
+    if [ -x  /etc/grub.d/$G2TEMPL ]; then
+        echo "grub2 template is already installed. Exiting..."
+        exit 252
+    fi
+    if [ -f /etc/grub.d/$G2TEMPL ]; then
+        echo "grub2 template is already in place, only enabling..."
+    else
+        if [ ! -r /usr/share/memtest86+/$G2TEMPL ]; then
+            echo "ERROR: unable to find grub2 template."
+            exit 251
+        fi
+        cp /usr/share/memtest86+/$G2TEMPL /etc/grub.d
+    fi
+    chmod a+x /etc/grub.d/$G2TEMPL
+    echo "grub 2 template installed."
+    echo "Do not forget to regenerate your grub.cfg by:"
+    echo "  # grub2-mkconfig -o /boot/grub2/grub.cfg"
+else
+    MTVERSION=`rpm -q --qf '%{version}' $PNAME`
+    MTPATH="/boot/$ENAME-$MTVERSION"
+
+    MENT=`cat /boot/grub/grub.conf | grep "$ENAME-$MTVERSION"` &> /dev/null
+    if [ "$MENT" != "" ]; then
+        echo "$MTPATH is already configured. Exiting..."
+        exit 0
+    fi
+
+    if [ ! -f $MTPATH ]; then
+        echo "ERROR: $MTPATH does not exist."
+        exit 255
+    fi
+
+    /sbin/new-memtest-pkg --install $MTVERSION --banner="Memtest86+"
+    RETVAL="$?"
+
+    if [ "$RETVAL" != "0" ]; then
+        echo "ERROR: grubby failed to configure your bootloader for $MTPATH."
+        exit $RETVAL
+    else
+        sed -i -e"s,kernel \(/boot\)\?/$ENAME,kernel --type=netbsd \1/$ENAME," /boot/grub/grub.conf
+        sed -i -e"s,/$ENAME-$MTVERSION.*,/$ENAME-$MTVERSION," /boot/grub/grub.conf
+    fi
+fi
+
+echo "Setup complete."
