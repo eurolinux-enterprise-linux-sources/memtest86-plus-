@@ -1,0 +1,11 @@
+Install Memtest86+ by running:
+
+# memtest-setup
+
+If you use GRUB 2 (the default) it will install 20_memtest86+ GRUB template
+into /etc/grub.d and you will also need to regenerate GRUB 2 config by running:
+
+# grub2-mkconfig -o /boot/grub2/grub.cfg
+
+This is not done automatically because it could overwrite any custom changes
+in /boot/grub2/grub.cfg.

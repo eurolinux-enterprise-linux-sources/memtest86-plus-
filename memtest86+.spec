@@ -1,13 +1,15 @@
 %bcond_with update_grub
 
 # Prevent stripping
-%define __spec_install_post /usr/lib/rpm/brp-compress
+%global __spec_install_post /usr/lib/rpm/brp-compress
 # Turn off debuginfo package
-%define debug_package %{nil}
+%global debug_package %{nil}
+
+%global readme_suffix %{?rhel:redhat}%{!?rhel:fedora}
 
 Name:     memtest86+
 Version:  4.20
-Release:  12%{?dist}
+Release:  14%{?dist}
 License:  GPLv2
 Summary:  Stand-alone memory tester for x86 and x86-64 computers
 Group:    System Environment/Base
@@ -15,6 +17,8 @@ Source0:  http://www.memtest.org/download/%{version}/%{name}-%{version}.tar.gz
 Source1:  memtest-setup
 Source2:  new-memtest-pkg
 Source3:  20_memtest86+
+Source4:  memtest-setup.8
+Source5:  README
 Patch0:   memtest86+-4.20-gcc47-test7-workaround.patch
 
 URL:      http://www.memtest.org
@@ -41,6 +45,7 @@ to add the %{name} entry to your GRUB boot menu.
 
 %prep
 %setup -q
+cp -p %{SOURCE5} README.%{readme_suffix}
 %patch0 -p1 -b .gcc47-test7-workaround
 sed -i -e's,0x5000,0x100000,' memtest.lds
 %ifarch x86_64
@@ -74,6 +79,9 @@ touch %{buildroot}%{_sysconfdir}/grub.d/20_memtest86+
 install -Dd %{buildroot}%{_datadir}/%{name}
 install -m644 %{SOURCE3} %{buildroot}%{_datadir}/%{name}
 
+# install manual page
+install -Dpm 0644 %{SOURCE4} %{buildroot}%{_mandir}/man8/memtest-setup.8
+
 %if %{with update_grub}
 %post -p /usr/sbin/memtest-setup
 %endif
@@ -90,7 +98,7 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,-)
-%doc README
+%doc README README.%{readme_suffix}
 /boot/%{name}-%{version}
 /boot/elf-%{name}-%{version}
 %{_sbindir}/new-memtest-pkg
@@ -98,8 +106,17 @@ rm -rf %{buildroot}
 %{_datadir}/%{name}/20_memtest86+
 %ghost %attr(0755,-,-) %{_sysconfdir}/grub.d/20_memtest86+
 %{_sbindir}/memtest-setup
+%{_mandir}/man8/*.8.gz
 
 %changelog
+* Fri Sep  5 2014 Jaroslav Škarvada <jskarvad@redhat.com> - 4.20-14
+- Fixed typo in memtest-setup help, added its options to man / help
+  Related: rhbz#1084030
+
+* Tue Aug 26 2014 Jaroslav Škarvada <jskarvad@redhat.com> - 4.20-13
+- Added documentation regarding memtest-setup
+  Resolves: rhbz#1084030
+
 * Thu Jan  2 2014 Jaroslav Škarvada <jskarvad@redhat.com> - 4.20-12
 - Fixed bogus dates in changelog (best effort)
   Resolves: rhbz#1043615

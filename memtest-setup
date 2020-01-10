@@ -6,8 +6,29 @@ PNAME="memtest86+"
 # executable
 ENAME="elf-memtest86+"
 
-# grub2 template
+# GRUB 2 template
 G2TEMPL="20_memtest86+"
+
+if [ "$1" = "--help" -o "$1" = "-h" ]; then
+    cat <<:EOF
+usage: memtest-setup [OPTIONS]
+
+This utility installs Memtest86+ into your GRUB boot loader menu.
+It supports both GRUB 2 and GRUB Legacy (i.e. GRUB 0.9x).
+In case of GRUB 2 it installs GRUB 2 template into /etc/grub.d and GRUB 2
+config needs to be regenerated manually by running:
+
+grub2-mkconfig -o /boot/grub2/grub.cfg
+
+This is not done automatically because it could  overwrite any custom changes
+in /boot/grub2/grub.cfg.
+
+OPTIONS:
+  -h , --help    show this help
+
+:EOF
+    exit 0
+fi
 
 if [ -d /sys/firmware/efi ]; then
     echo "memtest86+ does not support EFI platforms."
@@ -15,26 +36,26 @@ if [ -d /sys/firmware/efi ]; then
 fi
 
 if [ -f /boot/grub2/grub.cfg ]; then
-    echo "grub2 detected, installing template..."
+    echo "GRUB 2 detected, installing template..."
     if [ ! -d /etc/grub.d ]; then
         echo "ERROR: unable to find /etc/grub.d"
         exit 253
     fi
     if [ -x  /etc/grub.d/$G2TEMPL ]; then
-        echo "grub2 template is already installed. Exiting..."
+        echo "GRUB 2 template is already installed. Exiting..."
         exit 252
     fi
     if [ -f /etc/grub.d/$G2TEMPL ]; then
-        echo "grub2 template is already in place, only enabling..."
+        echo "GRUB 2 template is already in place, only enabling..."
     else
         if [ ! -r /usr/share/memtest86+/$G2TEMPL ]; then
-            echo "ERROR: unable to find grub2 template."
+            echo "ERROR: unable to find GRUB 2 template."
             exit 251
         fi
         cp /usr/share/memtest86+/$G2TEMPL /etc/grub.d
     fi
     chmod a+x /etc/grub.d/$G2TEMPL
-    echo "grub 2 template installed."
+    echo "GRUB 2 template installed."
     echo "Do not forget to regenerate your grub.cfg by:"
     echo "  # grub2-mkconfig -o /boot/grub2/grub.cfg"
 else
